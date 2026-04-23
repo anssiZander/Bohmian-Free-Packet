@@ -20,14 +20,15 @@ const params = {
   p0: 2.0,
   dt: 0.01,
 
-  packetX: 0.7,
+  packetX: 0.5,
   packetY: 0.5,
   packetSigma: 50.0,
 
-  nParticles: 1000,
+  nParticles: 200,
   rhoMin: 1e-6,
   velClamp: 160.0,
-  guidingMode: 0,
+  guidingMode: 1,
+  spinS: 0.5,
 
   visGain: 20.0,
   visGamma: 0.5,
@@ -65,8 +66,8 @@ const PALETTE_NAMES = [
 
 const GUIDING_MODE_NAMES = [
   "Schrodinger",
-  "Pauli spin-1/2 (+z)",
-  "Pauli spin-1/2 (-z)"
+  "Pauli spin (+z)",
+  "Pauli spin (-z)"
 ];
 
 let paused = false;
@@ -184,9 +185,10 @@ addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
 addSectionHeader("Physical Parameters");
 addSlider("p0", "momentum p", 0., 8.0, 0.1, () => resetAll());
 addSlider("dt", "dt", 0.005, 0.02, 0.001);
-//addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
+addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
+addSlider("spinS", "spin s", 0.0, 2.0, 0.5);
 addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
 {
   const row = document.createElement("div");
@@ -434,6 +436,7 @@ function buildPrograms() {
     uMass: u(progPartUpdate, "uMass"),
     uDT: u(progPartUpdate, "uDT"),
     uGuidingMode: u(progPartUpdate, "uGuidingMode"),
+    uSpinS: u(progPartUpdate, "uSpinS"),
     uRhoMin: u(progPartUpdate, "uRhoMin"),
     uVelClamp: u(progPartUpdate, "uVelClamp"),
   };
@@ -608,6 +611,7 @@ function particleUpdate() {
   gl.uniform1f(U.partUpdate.uMass, params.mass);
   gl.uniform1f(U.partUpdate.uDT, params.dt);
   gl.uniform1i(U.partUpdate.uGuidingMode, params.guidingMode | 0);
+  gl.uniform1f(U.partUpdate.uSpinS, params.spinS);
 
   gl.uniform1f(U.partUpdate.uRhoMin, params.rhoMin);
   gl.uniform1f(U.partUpdate.uVelClamp, params.velClamp);

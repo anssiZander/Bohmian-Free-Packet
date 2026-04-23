@@ -12,6 +12,7 @@ uniform float uHBAR;
 uniform float uMass;
 uniform float uDT;
 uniform int uGuidingMode;
+uniform float uSpinS;
 
 uniform float uRhoMin;
 uniform float uVelClamp;
@@ -47,7 +48,7 @@ vec2 schrodingerVelocity(vec2 psi, vec2 dpsidx, vec2 dpsidy, float rhoEff) {
 }
 
 vec2 pauliSpinCorrection(float rhoEff, float drhodx, float drhody) {
-  return 0.5 * (uHBAR / uMass) * vec2(drhody, -drhodx) / rhoEff;
+  return uSpinS * (uHBAR / uMass) * vec2(drhody, -drhodx) / rhoEff;
 }
 
 vec2 guidingVelocity(vec2 xPx) {
