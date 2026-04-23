@@ -11,31 +11,11 @@ uniform float uDT;
 uniform vec2  uPacketPosFrac;
 uniform float uPacketSigmaPx;
 
-uniform float uAbsorbPx;
-uniform float uAbsorbStrength;
-
 out vec4 fragColor;
 
 float sqr(float x){ return x*x; }
 vec2 cis(float a){ return vec2(cos(a), sin(a)); }
 float kineticEnergy(){ return 0.5*sqr(uP0)/uMass; }
-
-float absorbW(vec2 xPx){
-  if(uAbsorbPx <= 0.0) return 0.0;
-
-  
-  float leftFactor = 1.20;
-  float dx = min(xPx.x * leftFactor, float(uSimRes.x) - 1.0 - xPx.x);
-  float dy = min(xPx.y, float(uSimRes.y) - 1.0 - xPx.y);
-  float d  = min(dx, dy);
-
-  float t = clamp((uAbsorbPx - d) / max(uAbsorbPx, 1.0), 0.0, 1.0);
-  
-  
-  float profile = t * t * t;
-  
-  return uAbsorbStrength * profile;
-}
 
 vec2 schrodingerRHS(vec2 psi, vec2 lapPsi){
   float cLap = uHBAR / (2.0*uMass);
@@ -69,10 +49,6 @@ void main() {
   vec2 lap0 = (psiE + psiW + psiN + psiS - 4.0*psi0);
 
   vec2 rhs0 = schrodingerRHS(psi0, lap0);
-
-  
-  float W = absorbW(xPx);
-  rhs0 += -(W / uHBAR) * psi0;
 
   vec2 psiPrev = psi0 - uDT * rhs0;
 

@@ -13,59 +13,8 @@ uniform float uMass;
 uniform float uDT;
 uniform int uGuidingMode;
 
-uniform float uParticleKillMarginPx;
-
-uniform float uAbsorbPx;
-
 uniform float uRhoMin;
 uniform float uVelClamp;
-
-struct BoundaryAction {
-  bool freeze;
-  vec2 frozenPos;
-};
-
-BoundaryAction boundaryAction(vec2 xPx) {
-  float base = uAbsorbPx + uParticleKillMarginPx;
-  float absDistX = 1.5 * base;
-  float absDistY = 1.0 * base;
-  float freezeDistX = 1.5 * absDistX;
-  float freezeDistXLeft = freezeDistX * 1.20;
-  float freezeDistY = 1.5 * absDistY;
-
-  float w = float(uSimRes.x) - 1.0;
-  float h = float(uSimRes.y) - 1.0;
-
-  BoundaryAction a;
-  a.freeze = false;
-  a.frozenPos = xPx;
-
-  if (xPx.x < freezeDistXLeft) {
-    a.freeze = true;
-    a.frozenPos = vec2(freezeDistXLeft, clamp(xPx.y, 0.0, h));
-    return a;
-  }
-
-  if (xPx.x > (w - freezeDistX)) {
-    a.freeze = true;
-    a.frozenPos = vec2(w - freezeDistX, clamp(xPx.y, 0.0, h));
-    return a;
-  }
-
-  if (xPx.y < freezeDistY) {
-    a.freeze = true;
-    a.frozenPos = vec2(clamp(xPx.x, 0.0, w), freezeDistY);
-    return a;
-  }
-
-  if (xPx.y > (h - freezeDistY)) {
-    a.freeze = true;
-    a.frozenPos = vec2(clamp(xPx.x, 0.0, w), h - freezeDistY);
-    return a;
-  }
-
-  return a;
-}
 
 vec2 samplePsiBilinear(vec2 xPx) {
   vec2 maxX = vec2(uSimRes) - vec2(1.0001);
@@ -139,6 +88,17 @@ vec2 guidingVelocity(vec2 xPx) {
   return v;
 }
 
+vec2 reflectIntoBox(vec2 xPx) {
+  vec2 maxX = vec2(uSimRes) - vec2(1.0);
+
+  if (xPx.x < 0.0) xPx.x = -xPx.x;
+  if (xPx.x > maxX.x) xPx.x = 2.0 * maxX.x - xPx.x;
+  if (xPx.y < 0.0) xPx.y = -xPx.y;
+  if (xPx.y > maxX.y) xPx.y = 2.0 * maxX.y - xPx.y;
+
+  return clamp(xPx, vec2(0.0), maxX);
+}
+
 void main() {
   vec2 x = aState.xy;
   float mode = aState.z;
@@ -155,32 +115,12 @@ void main() {
     return;
   }
 
-  BoundaryAction act0 = boundaryAction(x);
-  if (act0.freeze) {
-    vState = vec4(act0.frozenPos, 2.0, 0.0);
-    gl_Position = vec4(-2.0);
-    return;
-  }
-
+  x = reflectIntoBox(x);
   vec2 v1 = guidingVelocity(x);
-  vec2 xm = clamp(x + 0.5 * uDT * v1, vec2(0.0), vec2(uSimRes) - vec2(1.0));
-
-  BoundaryAction actM = boundaryAction(xm);
-  if (actM.freeze) {
-    vState = vec4(actM.frozenPos, 2.0, 0.0);
-    gl_Position = vec4(-2.0);
-    return;
-  }
+  vec2 xm = reflectIntoBox(x + 0.5 * uDT * v1);
 
   vec2 v2 = guidingVelocity(xm);
-  vec2 xn = x + uDT * v2;
-
-  BoundaryAction actN = boundaryAction(xn);
-  if (actN.freeze) {
-    vState = vec4(actN.frozenPos, 2.0, 0.0);
-    gl_Position = vec4(-2.0);
-    return;
-  }
+  vec2 xn = reflectIntoBox(x + uDT * v2);
 
   vState = vec4(xn, 1.0, 0.0);
   gl_Position = vec4(-2.0);

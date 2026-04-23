@@ -9,27 +9,7 @@ uniform float uHBAR;
 uniform float uMass;
 uniform float uDT;
 
-uniform float uAbsorbPx;        
-uniform float uAbsorbStrength;  
-
 out vec4 fragColor;
-
-float absorbW(vec2 xPx){
-  if(uAbsorbPx <= 0.0) return 0.0;
-
-  
-  float leftFactor = 1.20;
-  float dx = min(xPx.x * leftFactor, float(uSimRes.x) - 1.0 - xPx.x);
-  float dy = min(xPx.y, float(uSimRes.y) - 1.0 - xPx.y);
-  float d  = min(dx, dy);
-
-  float t = clamp((uAbsorbPx - d) / max(uAbsorbPx, 1.0), 0.0, 1.0);
-  
-  
-  float profile = t * t * t;
-  
-  return uAbsorbStrength * profile;
-}
 
 vec2 fetchPsi(ivec2 q){
   if(q.x < 0 || q.y < 0 || q.x >= uSimRes.x || q.y >= uSimRes.y) return vec2(0.0);
@@ -59,11 +39,6 @@ void main() {
 
   
   vec2 rhs = schrodingerRHS(psi, lapPsi);
-
-  
-  vec2 xPx = vec2(p);
-  float W = absorbW(xPx);
-  rhs += -(W / uHBAR) * psi;
 
   
   vec2 psiNext = psiPrev + 2.0 * uDT * rhs;

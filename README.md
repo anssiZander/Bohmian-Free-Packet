@@ -1,12 +1,12 @@
-# Bohmian Free Packet
+# Bohmian Particle in a Box
 
-WebGL2 Bohmian mechanics simulation of a free particle Gaussian wave packet moving to the right, with boundary absorption/freeze zones retained.
+WebGL2 Bohmian mechanics simulation of a Gaussian wave packet in a hard-wall box. The packet starts moving to the right and reflects from the box boundaries.
 
 - `Schrodinger`: `v = j / rho`
 - `Pauli spin-1/2 (+z)`: `v = j / rho + (hbar / (2 m rho)) * (d_y rho, -d_x rho)`
 - `Pauli spin-1/2 (-z)`: `v = j / rho - (hbar / (2 m rho)) * (d_y rho, -d_x rho)`
 
-The wave field is advanced with the same scalar free-particle Schrodinger stepper. In the Pauli modes this corresponds to a factorized spinor with fixed spin along `+z` or `-z` and no magnetic field, so only the trajectory law changes.
+The wave field is advanced with a scalar Schrodinger stepper using hard-wall edge sampling. In the Pauli modes this corresponds to a factorized spinor with fixed spin along `+z` or `-z` and no magnetic field, so only the trajectory law changes. The absorbing boundary layer has been removed.
 
 ## Run
 

@@ -20,13 +20,9 @@ const params = {
   p0: 2.0,
   dt: 0.01,
 
-  packetX: 0.3,
+  packetX: 0.7,
   packetY: 0.5,
   packetSigma: 50.0,
-
-  absorbPx: 110.0,
-  absorbStrength: 0.25,
-  particleKillMargin: 12.0,
 
   nParticles: 1000,
   rhoMin: 1e-6,
@@ -65,20 +61,6 @@ const PALETTE_NAMES = [
   "Cosmic Dust",
   "Neon Noir",
   "Pastel Mirage"
-];
-
-const PALETTE_COMPLEMENTS = [
-  [0.92,0.93,0.88],
-  [0.10,0.60,0.10],
-  [0.80,0.60,0.55],
-  [0.10,0.60,0.80],
-  [0.80,0.30,0.15],
-  [0.20,0.80,0.30],
-  [0.85,0.25,0.25],
-  [0.10,0.10,0.80],
-  [0.40,0.50,0.70],
-  [0.90,0.90,0.10],
-  [0.40,0.40,0.60]
 ];
 
 const GUIDING_MODE_NAMES = [
@@ -200,12 +182,11 @@ function addSectionHeader(label) {
 addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
 
 addSectionHeader("Physical Parameters");
-addSlider("p0", "momentum p", 0.5, 8.0, 0.1, () => resetAll());
+addSlider("p0", "momentum p", 0., 8.0, 0.1, () => resetAll());
 addSlider("dt", "dt", 0.005, 0.02, 0.001);
 //addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
-addSlider("absorbPx", "absorb boundary", 0.0, 160.0, 1.0);
 addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
 {
   const row = document.createElement("div");
@@ -392,12 +373,8 @@ async function loadShaders() {
 let progWaveInit, progWaveStep, progWaveRender;
 let progPartUpdate, progPartView, progPartStamp;
 let progDensityStep, progDensityRender;
-let progBoundary;
 
 let U = {};
-
-let vaoKillBoundary = null;
-let boundaryBuffer = null;
 
 function buildPrograms() {
   const vsFull = compile(gl.VERTEX_SHADER, SH["fullscreen.vert"]);
@@ -431,8 +408,6 @@ function buildPrograms() {
     uDT: u(progWaveInit, "uDT"),
     uPacketPosFrac: u(progWaveInit, "uPacketPosFrac"),
     uPacketSigmaPx: u(progWaveInit, "uPacketSigmaPx"),
-    uAbsorbPx: u(progWaveInit, "uAbsorbPx"),
-    uAbsorbStrength: u(progWaveInit, "uAbsorbStrength"),
   };
 
   U.waveStep = {
@@ -441,8 +416,6 @@ function buildPrograms() {
     uHBAR: u(progWaveStep, "uHBAR"),
     uMass: u(progWaveStep, "uMass"),
     uDT: u(progWaveStep, "uDT"),
-    uAbsorbPx: u(progWaveStep, "uAbsorbPx"),
-    uAbsorbStrength: u(progWaveStep, "uAbsorbStrength"),
   };
 
   U.waveRender = {
@@ -461,10 +434,8 @@ function buildPrograms() {
     uMass: u(progPartUpdate, "uMass"),
     uDT: u(progPartUpdate, "uDT"),
     uGuidingMode: u(progPartUpdate, "uGuidingMode"),
-    uAbsorbPx: u(progPartUpdate, "uAbsorbPx"),
     uRhoMin: u(progPartUpdate, "uRhoMin"),
     uVelClamp: u(progPartUpdate, "uVelClamp"),
-    uParticleKillMarginPx: u(progPartUpdate, "uParticleKillMarginPx"),
   };
 
   U.partView = {
@@ -525,9 +496,6 @@ function setWaveInitUniforms() {
 
   gl.uniform2f(U.waveInit.uPacketPosFrac, params.packetX, params.packetY);
   gl.uniform1f(U.waveInit.uPacketSigmaPx, params.packetSigma);
-
-  gl.uniform1f(U.waveInit.uAbsorbPx, params.absorbPx);
-  gl.uniform1f(U.waveInit.uAbsorbStrength, params.absorbStrength);
 }
 
 function setWaveStepUniforms(srcTex) {
@@ -539,9 +507,6 @@ function setWaveStepUniforms(srcTex) {
   gl.uniform1f(U.waveStep.uHBAR, params.hbar);
   gl.uniform1f(U.waveStep.uMass, params.mass);
   gl.uniform1f(U.waveStep.uDT, params.dt);
-
-  gl.uniform1f(U.waveStep.uAbsorbPx, params.absorbPx);
-  gl.uniform1f(U.waveStep.uAbsorbStrength, params.absorbStrength);
 }
 
 function resetWave() {
@@ -644,8 +609,6 @@ function particleUpdate() {
   gl.uniform1f(U.partUpdate.uDT, params.dt);
   gl.uniform1i(U.partUpdate.uGuidingMode, params.guidingMode | 0);
 
-  gl.uniform1f(U.partUpdate.uAbsorbPx, params.absorbPx);
-  gl.uniform1f(U.partUpdate.uParticleKillMarginPx, params.particleKillMargin);
   gl.uniform1f(U.partUpdate.uRhoMin, params.rhoMin);
   gl.uniform1f(U.partUpdate.uVelClamp, params.velClamp);
 
@@ -749,128 +712,6 @@ function densityStepAndStamp() {
   densFlip = 1 - densFlip;
 }
 
-function drawKillBoundary() {
-
-  const base = params.absorbPx + params.particleKillMargin;
-  const absDistX = 1.5 * base;
-  const absDistY = 1.0 * base;
-  const freezeDistX = 1.5 * absDistX;
-  const freezeDistY = 1.5 * absDistY;
-
-  const scaleX = canvas.width / simW;
-  const scaleY = canvas.height / simH;
-
-  const leftBoundaryX = freezeDistX * 1.20 * scaleX;
-  const rightBoundaryX = (simW - freezeDistX) * scaleX;
-  const topBoundaryY = freezeDistY * scaleY;
-  const bottomBoundaryY = (simH - freezeDistY) * scaleY;
-
-  if (!progBoundary) {
-    const vsSource = `#version 300 es
-      precision mediump float;
-      in vec2 aPos;
-      uniform vec4 uBoundaryRect;
-      out vec2 vPos;
-      void main() {
-        vPos = aPos;
-        float x = mix(uBoundaryRect.x, uBoundaryRect.z, aPos.x * 0.5 + 0.5);
-        float y = mix(uBoundaryRect.y, uBoundaryRect.w, aPos.y * 0.5 + 0.5);
-        gl_Position = vec4(x, y, 0.0, 1.0);
-      }
-    `;
-    const fsSource = `#version 300 es
-      precision mediump float;
-      uniform vec4 uBoundaryColor;
-      out vec4 outColor;
-      void main() {
-        outColor = uBoundaryColor;
-      }
-    `;
-
-    const vs = compile(gl.VERTEX_SHADER, vsSource);
-    const fs = compile(gl.FRAGMENT_SHADER, fsSource);
-    progBoundary = link(vs, fs);
-  }
-
-  if (!vaoKillBoundary) {
-    vaoKillBoundary = gl.createVertexArray();
-    boundaryBuffer = gl.createBuffer();
-
-    const rectVertices = new Float32Array([
-      -1, -1,
-       1, -1,
-       1,  1,
-      -1, -1,
-       1,  1,
-      -1,  1,
-    ]);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, boundaryBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, rectVertices, gl.STATIC_DRAW);
-
-    gl.bindVertexArray(vaoKillBoundary);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
-    gl.bindVertexArray(null);
-  }
-
-  const boundaryThickness = 2;
-
-  const canvasToNDCX = (px) => (px * 2 / canvas.width) - 1;
-  const canvasToNDCY = (py) => 1 - (py * 2 / canvas.height);
-
-  gl.useProgram(progBoundary);
-  gl.bindVertexArray(vaoKillBoundary);
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-  let comp = PALETTE_COMPLEMENTS[params.paletteId | 0] || [1,1,1];
-  const alpha = 0.15;
-  const colorLoc = gl.getUniformLocation(progBoundary, 'uBoundaryColor');
-  gl.uniform4f(colorLoc, comp[0], comp[1], comp[2], alpha);
-
-  const boundaryRectLoc = gl.getUniformLocation(progBoundary, 'uBoundaryRect');
-
-  gl.uniform4f(
-    boundaryRectLoc,
-    canvasToNDCX(leftBoundaryX),
-    -1,
-    canvasToNDCX(leftBoundaryX + boundaryThickness),
-    1
-  );
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-  gl.uniform4f(
-    boundaryRectLoc,
-    canvasToNDCX(rightBoundaryX - boundaryThickness),
-    -1,
-    canvasToNDCX(rightBoundaryX),
-    1
-  );
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-  gl.uniform4f(
-    boundaryRectLoc,
-    -1,
-    canvasToNDCY(topBoundaryY),
-    1,
-    canvasToNDCY(topBoundaryY + boundaryThickness)
-  );
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-  gl.uniform4f(
-    boundaryRectLoc,
-    -1,
-    canvasToNDCY(bottomBoundaryY - boundaryThickness),
-    1,
-    canvasToNDCY(bottomBoundaryY)
-  );
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-  gl.disable(gl.BLEND);
-  gl.bindVertexArray(null);
-}
-
 function render() {
   const waveTex = flip ? texB : texA;
   const densTex = densFlip ? densTexB : densTexA;
@@ -929,8 +770,6 @@ function render() {
 
     gl.disable(gl.BLEND);
   }
-
-  drawKillBoundary();
 
   if (params.showParticles) {
     gl.enable(gl.BLEND);
