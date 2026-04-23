@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bohmian Tunneling (WebGL2)</title>
+  <title>Bohmian Free Packet (WebGL2)</title>
   <style>
     html, body { margin:0; height:100%; background:#000; overflow:hidden; font-family: system-ui, sans-serif; }
     #wrap { position:relative; width:100%; height:100%; }
@@ -29,6 +29,11 @@
     button.selected { background:rgba(64,156,255,0.35); border-color:rgba(64,156,255,0.6); }
     .toggle-group { display:flex; gap:6px; flex:1; }
     .toggle-group button { flex:1; padding:6px 8px; font-size:11px; }
+    .row.mode-row { flex-direction:column; align-items:stretch; gap:6px; }
+    .row.mode-row label { width:auto; }
+    .row.mode-row .val { display:none; }
+    .row.mode-row .toggle-group { width:100%; }
+    .row.mode-row .toggle-group button { min-width:0; white-space:normal; line-height:1.15; }
     .stat { margin-top:8px; font-size:12px; color:#bbb; line-height:1.35; }
     .stat b { color:#fff; font-weight:600; }
   </style>
@@ -38,7 +43,7 @@
     <canvas id="c"></canvas>
     <div id="ui">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
-  <h3 style="margin:0; font-size:14px; font-weight:600; color:#fff;">Bohmian Tunneling</h3>
+  <h3 style="margin:0; font-size:14px; font-weight:600; color:#fff;">Bohmian Free Packet</h3>
   <button id="minui" title="Minimize/expand" style="
     width:34px; height:28px; padding:0;
     border-radius:8px; border:1px solid rgba(255,255,255,0.2);

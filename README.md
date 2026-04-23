@@ -1,11 +1,12 @@
-# Bohmian Double Slit
+# Bohmian Free Packet
 
-WebGL2 Bohmian mechanics double-slit simulation with two selectable guiding laws.
+WebGL2 Bohmian mechanics simulation of a free particle Gaussian wave packet moving to the right, with boundary absorption/freeze zones retained.
 
 - `Schrodinger`: `v = j / rho`
 - `Pauli spin-1/2 (+z)`: `v = j / rho + (hbar / (2 m rho)) * (d_y rho, -d_x rho)`
+- `Pauli spin-1/2 (-z)`: `v = j / rho - (hbar / (2 m rho)) * (d_y rho, -d_x rho)`
 
-The wave field is still advanced with the same scalar Schrodinger stepper. In the Pauli mode this corresponds to a factorized spinor with fixed spin-up along `+z` and no magnetic field, so only the trajectory law changes.
+The wave field is advanced with the same scalar free-particle Schrodinger stepper. In the Pauli modes this corresponds to a factorized spinor with fixed spin along `+z` or `-z` and no magnetic field, so only the trajectory law changes.
 
 ## Run
 
@@ -19,7 +20,7 @@ Then open `http://localhost:8000/`.
 
 ## Controls
 
-- `guiding law` switches between the two trajectory laws and resets the run.
+- `physics mode` switches between the three trajectory laws and resets the run.
 - `Reset` restarts the wave, particles, and trails.
 - `Pause` stops time stepping.
 - `R` resets the simulation.

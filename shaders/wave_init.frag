@@ -11,10 +11,6 @@ uniform float uDT;
 uniform vec2  uPacketPosFrac;
 uniform float uPacketSigmaPx;
 
-uniform float uBarrierYFrac;
-uniform float uBarrierThickPx;
-uniform float uV0;
-
 uniform float uAbsorbPx;
 uniform float uAbsorbStrength;
 
@@ -23,16 +19,6 @@ out vec4 fragColor;
 float sqr(float x){ return x*x; }
 vec2 cis(float a){ return vec2(cos(a), sin(a)); }
 float kineticEnergy(){ return 0.5*sqr(uP0)/uMass; }
-
-float band(float x, float c, float halfW, float feather){
-  return smoothstep(c-halfW-feather, c-halfW, x) *
-         (1.0 - smoothstep(c+halfW, c+halfW+feather, x));
-}
-
-float barrierPotentialPx(vec2 xPx){
-  float by = uBarrierYFrac * float(uSimRes.y);
-  return uV0 * band(xPx.y, by, 0.5 * uBarrierThickPx, 1.0);
-}
 
 float absorbW(vec2 xPx){
   if(uAbsorbPx <= 0.0) return 0.0;
@@ -51,11 +37,10 @@ float absorbW(vec2 xPx){
   return uAbsorbStrength * profile;
 }
 
-vec2 schrodingerRHS(vec2 psi, vec2 lapPsi, float V){
+vec2 schrodingerRHS(vec2 psi, vec2 lapPsi){
   float cLap = uHBAR / (2.0*uMass);
-  float cV   = V / uHBAR;
-  return vec2(-cLap*lapPsi.y + cV*psi.y,
-               cLap*lapPsi.x - cV*psi.x);
+  return vec2(-cLap*lapPsi.y,
+               cLap*lapPsi.x);
 }
 
 vec2 initialPacketAtPx(vec2 xPx, float t){
@@ -65,7 +50,7 @@ vec2 initialPacketAtPx(vec2 xPx, float t){
   float amp = exp(-dot(d,d)/(2.0*sqr(uPacketSigmaPx)));
 
   float k  = uP0/uHBAR;
-  vec2 dir = normalize(vec2(1.0, 1.0));
+  vec2 dir = vec2(1.0, 0.0);
   float phaseSpace = k * dot(dir, d);
   float phaseTime  = -kineticEnergy() * t / uHBAR;
   return amp * cis(phaseSpace + phaseTime);
@@ -83,9 +68,7 @@ void main() {
   vec2 psiS = initialPacketAtPx(xPx + vec2( 0.0,-1.0), 0.0);
   vec2 lap0 = (psiE + psiW + psiN + psiS - 4.0*psi0);
 
-  float V = barrierPotentialPx(xPx);
-
-  vec2 rhs0 = schrodingerRHS(psi0, lap0, V);
+  vec2 rhs0 = schrodingerRHS(psi0, lap0);
 
   
   float W = absorbW(xPx);

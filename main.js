@@ -20,13 +20,9 @@ const params = {
   p0: 2.0,
   dt: 0.01,
 
-  packetX: 0.4,
-  packetY: 0.3,
+  packetX: 0.3,
+  packetY: 0.5,
   packetSigma: 50.0,
-
-  barrierY: 0.55,
-  barrierThick: 100.0,
-  V0: 1.0,
 
   absorbPx: 110.0,
   absorbStrength: 0.25,
@@ -87,10 +83,9 @@ const PALETTE_COMPLEMENTS = [
 
 const GUIDING_MODE_NAMES = [
   "Schrodinger",
-  "Pauli spin-1/2 (+z)"
+  "Pauli spin-1/2 (+z)",
+  "Pauli spin-1/2 (-z)"
 ];
-
-const BARRIER_V0_MAX = 12.0;
 
 let paused = false;
 
@@ -210,22 +205,20 @@ addSlider("dt", "dt", 0.005, 0.02, 0.001);
 //addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
-addSlider("V0", "barrier V0", 0.0, BARRIER_V0_MAX, 0.1, () => resetAll());
-addSlider("barrierThick", "barrier thickness", 4.0, 150.0, 1.0, () => resetAll());
 addSlider("absorbPx", "absorb boundary", 0.0, 160.0, 1.0);
 addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
 {
   const row = document.createElement("div");
-  row.className = "row";
+  row.className = "row mode-row";
 
   const lab = document.createElement("label");
-  lab.textContent = "guiding law";
+  lab.textContent = "physics mode";
 
   const group = document.createElement("div");
   group.className = "toggle-group";
 
   const btnSchrodinger = document.createElement("button");
-  btnSchrodinger.textContent = "Schrödinger";
+  btnSchrodinger.textContent = "Schrodinger";
   btnSchrodinger.addEventListener("click", () => {
     params.guidingMode = 0;
     updateToggleButtons();
@@ -233,19 +226,29 @@ addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
   });
 
   const btnPauli = document.createElement("button");
-  btnPauli.textContent = "Pauli (Spin)";
+  btnPauli.textContent = "Pauli (spin up)";
   btnPauli.addEventListener("click", () => {
     params.guidingMode = 1;
     updateToggleButtons();
     resetAll();
   });
 
+  const btnPauliDown = document.createElement("button");
+  btnPauliDown.textContent = "Pauli (spin down)";
+  btnPauliDown.addEventListener("click", () => {
+    params.guidingMode = 2;
+    updateToggleButtons();
+    resetAll();
+  });
+
   group.appendChild(btnSchrodinger);
   group.appendChild(btnPauli);
+  group.appendChild(btnPauliDown);
 
   function updateToggleButtons() {
     btnSchrodinger.classList.toggle("selected", params.guidingMode === 0);
     btnPauli.classList.toggle("selected", params.guidingMode === 1);
+    btnPauliDown.classList.toggle("selected", params.guidingMode === 2);
   }
   updateToggleButtons();
 
@@ -428,9 +431,6 @@ function buildPrograms() {
     uDT: u(progWaveInit, "uDT"),
     uPacketPosFrac: u(progWaveInit, "uPacketPosFrac"),
     uPacketSigmaPx: u(progWaveInit, "uPacketSigmaPx"),
-    uBarrierYFrac: u(progWaveInit, "uBarrierYFrac"),
-    uBarrierThickPx: u(progWaveInit, "uBarrierThickPx"),
-    uV0: u(progWaveInit, "uV0"),
     uAbsorbPx: u(progWaveInit, "uAbsorbPx"),
     uAbsorbStrength: u(progWaveInit, "uAbsorbStrength"),
   };
@@ -441,9 +441,6 @@ function buildPrograms() {
     uHBAR: u(progWaveStep, "uHBAR"),
     uMass: u(progWaveStep, "uMass"),
     uDT: u(progWaveStep, "uDT"),
-    uBarrierYFrac: u(progWaveStep, "uBarrierYFrac"),
-    uBarrierThickPx: u(progWaveStep, "uBarrierThickPx"),
-    uV0: u(progWaveStep, "uV0"),
     uAbsorbPx: u(progWaveStep, "uAbsorbPx"),
     uAbsorbStrength: u(progWaveStep, "uAbsorbStrength"),
   };
@@ -454,9 +451,6 @@ function buildPrograms() {
     uVisGain: u(progWaveRender, "uVisGain"),
     uVisGamma: u(progWaveRender, "uVisGamma"),
     uShowPhase: u(progWaveRender, "uShowPhase"),
-    uBarrierYFrac: u(progWaveRender, "uBarrierYFrac"),
-    uBarrierThickPx: u(progWaveRender, "uBarrierThickPx"),
-    uBarrierOpacity: u(progWaveRender, "uBarrierOpacity"),
     uPaletteId: u(progWaveRender, "uPaletteId"),
   };
 
@@ -532,10 +526,6 @@ function setWaveInitUniforms() {
   gl.uniform2f(U.waveInit.uPacketPosFrac, params.packetX, params.packetY);
   gl.uniform1f(U.waveInit.uPacketSigmaPx, params.packetSigma);
 
-  gl.uniform1f(U.waveInit.uBarrierYFrac, params.barrierY);
-  gl.uniform1f(U.waveInit.uBarrierThickPx, params.barrierThick);
-  gl.uniform1f(U.waveInit.uV0, params.V0);
-
   gl.uniform1f(U.waveInit.uAbsorbPx, params.absorbPx);
   gl.uniform1f(U.waveInit.uAbsorbStrength, params.absorbStrength);
 }
@@ -549,10 +539,6 @@ function setWaveStepUniforms(srcTex) {
   gl.uniform1f(U.waveStep.uHBAR, params.hbar);
   gl.uniform1f(U.waveStep.uMass, params.mass);
   gl.uniform1f(U.waveStep.uDT, params.dt);
-
-  gl.uniform1f(U.waveStep.uBarrierYFrac, params.barrierY);
-  gl.uniform1f(U.waveStep.uBarrierThickPx, params.barrierThick);
-  gl.uniform1f(U.waveStep.uV0, params.V0);
 
   gl.uniform1f(U.waveStep.uAbsorbPx, params.absorbPx);
   gl.uniform1f(U.waveStep.uAbsorbStrength, params.absorbStrength);
@@ -763,12 +749,6 @@ function densityStepAndStamp() {
   densFlip = 1 - densFlip;
 }
 
-function computeBarrierOpacity() {
-  if (params.V0 <= 0) return 0.0;
-  const t = Math.min(1.0, params.V0 / BARRIER_V0_MAX);
-  return 0.85 * t;
-}
-
 function drawKillBoundary() {
 
   const base = params.absorbPx + params.particleKillMargin;
@@ -914,14 +894,7 @@ function render() {
   gl.uniform1f(U.waveRender.uVisGamma, params.visGamma);
   gl.uniform1i(U.waveRender.uShowPhase, params.showPhase);
 
-  gl.uniform1f(U.waveRender.uBarrierYFrac, params.barrierY);
-  gl.uniform1f(U.waveRender.uBarrierThickPx, params.barrierThick);
-
   gl.uniform1i(U.waveRender.uPaletteId, params.paletteId | 0);
-
-  if (U.waveRender.uBarrierOpacity) {
-    gl.uniform1f(U.waveRender.uBarrierOpacity, computeBarrierOpacity());
-  }
 
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -984,7 +957,7 @@ function guidingModeLabel() {
 }
 
 function updateStats() {
-  statsEl.innerHTML = `<b>Guiding</b>: ${guidingModeLabel()}`;
+  statsEl.innerHTML = `<b>Physics</b>: ${guidingModeLabel()}`;
 }
 
 function rebuildSimulation() {

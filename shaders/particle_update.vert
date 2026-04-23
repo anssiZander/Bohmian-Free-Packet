@@ -116,14 +116,21 @@ vec2 guidingVelocity(vec2 xPx) {
 
   vec2 v = schrodingerVelocity(psi, dpsidx, dpsidy, rhoEff);
 
+  float spinSign = 0.0;
   if (uGuidingMode == 1) {
+    spinSign = 1.0;
+  } else if (uGuidingMode == 2) {
+    spinSign = -1.0;
+  }
+
+  if (spinSign != 0.0) {
     float rhoE = dot(psiE, psiE);
     float rhoW = dot(psiW, psiW);
     float rhoN = dot(psiN, psiN);
     float rhoS = dot(psiS, psiS);
     float drhodx = 0.5 * (rhoE - rhoW);
     float drhody = 0.5 * (rhoN - rhoS);
-    v += pauliSpinCorrection(rhoEff, drhodx, drhody);
+    v += spinSign * pauliSpinCorrection(rhoEff, drhodx, drhody);
   }
 
   float sp = length(v);

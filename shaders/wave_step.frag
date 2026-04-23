@@ -9,24 +9,10 @@ uniform float uHBAR;
 uniform float uMass;
 uniform float uDT;
 
-uniform float uBarrierYFrac;
-uniform float uBarrierThickPx;
-uniform float uV0;
-
 uniform float uAbsorbPx;        
 uniform float uAbsorbStrength;  
 
 out vec4 fragColor;
-
-float band(float x, float c, float halfW, float feather){
-  return smoothstep(c-halfW-feather, c-halfW, x) *
-         (1.0 - smoothstep(c+halfW, c+halfW+feather, x));
-}
-
-float barrierPotentialPx(vec2 xPx){
-  float by = uBarrierYFrac * float(uSimRes.y);
-  return uV0 * band(xPx.y, by, 0.5 * uBarrierThickPx, 1.0);
-}
 
 float absorbW(vec2 xPx){
   if(uAbsorbPx <= 0.0) return 0.0;
@@ -50,12 +36,11 @@ vec2 fetchPsi(ivec2 q){
   return texelFetch(uState, q, 0).rg;
 }
 
-vec2 schrodingerRHS(vec2 psi, vec2 lapPsi, float V){
+vec2 schrodingerRHS(vec2 psi, vec2 lapPsi){
   
   float cLap = uHBAR / (2.0*uMass);
-  float cV   = V / uHBAR;
-  return vec2(-cLap*lapPsi.y + cV*psi.y,
-               cLap*lapPsi.x - cV*psi.x);
+  return vec2(-cLap*lapPsi.y,
+               cLap*lapPsi.x);
 }
 
 void main() {
@@ -72,13 +57,11 @@ void main() {
   vec2 psiS = fetchPsi(p + ivec2( 0,-1));
   vec2 lapPsi = (psiE + psiW + psiN + psiS - 4.0*psi);
 
+  
+  vec2 rhs = schrodingerRHS(psi, lapPsi);
+
+  
   vec2 xPx = vec2(p);
-  float V = barrierPotentialPx(xPx);
-
-  
-  vec2 rhs = schrodingerRHS(psi, lapPsi, V);
-
-  
   float W = absorbW(xPx);
   rhs += -(W / uHBAR) * psi;
 
