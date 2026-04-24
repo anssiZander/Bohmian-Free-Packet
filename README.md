@@ -6,17 +6,9 @@ WebGL2 Bohmian mechanics simulation of a Gaussian wave packet in a hard-wall box
 - `Pauli spin (+z)`: `v = j / rho + (s hbar / (m rho)) * (d_y rho, -d_x rho)`
 - `Pauli spin (-z)`: `v = j / rho - (s hbar / (m rho)) * (d_y rho, -d_x rho)`
 
-The wave field is advanced with a scalar Schrodinger stepper using hard-wall edge sampling. In the Pauli modes this corresponds to a pure factorized spin state with fixed spin along `+z` or `-z`, no component mixing, and no magnetic field, so only the trajectory law changes. The `spin s` slider controls the spin strength from `0` to `2` in half-integer steps; `s = 0.5` reproduces the previous spin-1/2 behavior.
+The wave field is advanced with a scalar Schrodinger stepper using hard-wall edge sampling. In the Pauli modes this corresponds to a pure factorized spin state with fixed spin along `+z` or `-z`, no component mixing, and no magnetic field, so only the trajectory law changes. The `spin s` slider controls the spin strength from `0` to `2` in half-integer steps.
 
-## Run
 
-Serve the repository root with any static file server and open `index.html`.
-
-```powershell
-py -m http.server
-```
-
-Then open `http://localhost:8000/`.
 
 ## Controls
 
