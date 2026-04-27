@@ -13,7 +13,7 @@ if (!extFloatRT) {
 
 const params = {
   simScale: 0.5,
-  stepsPerFrame: 30,
+  stepsPerFrame: 20,
 
   hbar: 6.0,
   mass: 1.0,
@@ -182,10 +182,11 @@ function addSectionHeader(label) {
 
 addSlider("simScale", "sim scale", 0.25, 1.0, 0.05, () => rebuildSimulation());
 addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
+addSlider("dt", "dt", 0.01, 0.04, 0.01);
 
 addSectionHeader("Physical Parameters");
 addSlider("p0", "momentum p", 0., 8.0, 0.1, () => resetAll());
-addSlider("dt", "dt", 0.01, 0.04, 0.01);
+
 addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
