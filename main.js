@@ -126,6 +126,7 @@ function addToggleInt(key, label) {
   btn.addEventListener("click", () => {
     params[key] = params[key] ? 0 : 1;
     btn.textContent = params[key] ? "ON" : "OFF";
+    resetAll()
   });
 
   const val = document.createElement("div");
@@ -192,7 +193,7 @@ addSlider("p0", "momentum p", 0., 8.0, 0.1, () => resetAll());
 addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
-addToggleInt("doubleGaussian", "slit gaussian");
+addToggleInt("doubleGaussian", "split gaussian");
 addSlider("gaussianSeparation", "separation", 0.0, 400.0, 10.0, () => resetAll());
 addSlider("spinS", "spin s", 0.0, 2.0, 0.5);
 addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
