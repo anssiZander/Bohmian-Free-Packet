@@ -23,6 +23,8 @@ const params = {
   packetX: 0.5,
   packetY: 0.5,
   packetSigma: 50.0,
+  doubleGaussian: 0,
+  gaussianSeparation: 200.0,
 
   nParticles: 200,
   rhoMin: 1e-6,
@@ -190,6 +192,8 @@ addSlider("p0", "momentum p", 0., 8.0, 0.1, () => resetAll());
 addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
+addToggleInt("doubleGaussian", "slit gaussian");
+addSlider("gaussianSeparation", "separation", 0.0, 400.0, 10.0, () => resetAll());
 addSlider("spinS", "spin s", 0.0, 2.0, 0.5);
 addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
 {
@@ -412,6 +416,8 @@ function buildPrograms() {
     uDT: u(progWaveInit, "uDT"),
     uPacketPosFrac: u(progWaveInit, "uPacketPosFrac"),
     uPacketSigmaPx: u(progWaveInit, "uPacketSigmaPx"),
+    uDoubleGaussian: u(progWaveInit, "uDoubleGaussian"),
+    uGaussianSeparation: u(progWaveInit, "uGaussianSeparation"),
   };
 
   U.waveStep = {
@@ -501,6 +507,8 @@ function setWaveInitUniforms() {
 
   gl.uniform2f(U.waveInit.uPacketPosFrac, params.packetX, params.packetY);
   gl.uniform1f(U.waveInit.uPacketSigmaPx, params.packetSigma);
+  gl.uniform1i(U.waveInit.uDoubleGaussian, params.doubleGaussian | 0);
+  gl.uniform1f(U.waveInit.uGaussianSeparation, params.gaussianSeparation);
 }
 
 function setWaveStepUniforms(srcTex) {
@@ -572,8 +580,20 @@ function rebuildParticles() {
   const y0 = params.packetY * simH;
 
   for (let i = 0; i < n; i++) {
-    let x = x0 + randn() * sigma1D;
-    let y = y0 + randn() * sigma1D;
+    let x, y;
+    
+    if (params.doubleGaussian) {
+      // Randomly choose which gaussian to sample from (50/50)
+      const useFirst = Math.random() < 0.5;
+      const sep = params.gaussianSeparation / 2; // offset amount
+      
+      x = x0 + randn() * sigma1D;
+      y = y0 + randn() * sigma1D + (useFirst ? -sep : sep);
+    } else {
+      x = x0 + randn() * sigma1D;
+      y = y0 + randn() * sigma1D;
+    }
+    
     x = Math.max(0, Math.min(simW - 1, x));
     y = Math.max(0, Math.min(simH - 1, y));
     data[i * 4 + 0] = x;

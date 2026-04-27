@@ -10,6 +10,8 @@ uniform float uDT;
 
 uniform vec2  uPacketPosFrac;
 uniform float uPacketSigmaPx;
+uniform int   uDoubleGaussian;
+uniform float uGaussianSeparation;
 
 out vec4 fragColor;
 
@@ -25,15 +27,45 @@ vec2 schrodingerRHS(vec2 psi, vec2 lapPsi){
 
 vec2 initialPacketAtPx(vec2 xPx, float t){
   vec2 x0 = uPacketPosFrac * vec2(uSimRes);
-  vec2 d  = xPx - x0;
+  
+  if (uDoubleGaussian != 0) {
+    // Superposition of two Gaussians, separated vertically
+    float sep = uGaussianSeparation / 2.0;
+    
+    vec2 d1 = xPx - x0 - vec2(0.0, -sep);
+    vec2 d2 = xPx - x0 - vec2(0.0, sep);
+    
+    float amp1 = exp(-dot(d1,d1)/(2.0*sqr(uPacketSigmaPx)));
+    float amp2 = exp(-dot(d2,d2)/(2.0*sqr(uPacketSigmaPx)));
+    
+    // Normalize by 1/sqrt(2) so total probability is conserved
+    float amp = (amp1 + amp2) / sqrt(2.0);
+    
+    float k  = uP0/uHBAR;
+    vec2 dir = vec2(1.0, 0.0);
+    
+    // Phase for both gaussians (same momentum direction)
+    float phase1 = k * dot(dir, d1);
+    float phase2 = k * dot(dir, d2);
+    float phaseTime  = -kineticEnergy() * t / uHBAR;
+    
+    vec2 psi1 = amp1 * cis(phase1 + phaseTime);
+    vec2 psi2 = amp2 * cis(phase2 + phaseTime);
+    
+    // Return superposition (normalized)
+    return (psi1 + psi2) / sqrt(2.0);
+  } else {
+    // Single Gaussian (original behavior)
+    vec2 d  = xPx - x0;
 
-  float amp = exp(-dot(d,d)/(2.0*sqr(uPacketSigmaPx)));
+    float amp = exp(-dot(d,d)/(2.0*sqr(uPacketSigmaPx)));
 
-  float k  = uP0/uHBAR;
-  vec2 dir = vec2(1.0, 0.0);
-  float phaseSpace = k * dot(dir, d);
-  float phaseTime  = -kineticEnergy() * t / uHBAR;
-  return amp * cis(phaseSpace + phaseTime);
+    float k  = uP0/uHBAR;
+    vec2 dir = vec2(1.0, 0.0);
+    float phaseSpace = k * dot(dir, d);
+    float phaseTime  = -kineticEnergy() * t / uHBAR;
+    return amp * cis(phaseSpace + phaseTime);
+  }
 }
 
 void main() {
