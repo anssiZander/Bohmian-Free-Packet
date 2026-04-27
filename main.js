@@ -12,7 +12,7 @@ if (!extFloatRT) {
 }
 
 const params = {
-  simScale: 1.0,
+  simScale: 0.5,
   stepsPerFrame: 30,
 
   hbar: 6.0,
@@ -180,6 +180,7 @@ function addSectionHeader(label) {
   controls.appendChild(header);
 }
 
+addSlider("simScale", "sim scale", 0.25, 1.0, 0.05, () => rebuildSimulation());
 addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
 
 addSectionHeader("Physical Parameters");
@@ -643,6 +644,11 @@ function fadeFromHalfLife(halfLife, dtTotal) {
 }
 
 function rebuildDensity() {
+  if (densTexA) gl.deleteTexture(densTexA);
+  if (densTexB) gl.deleteTexture(densTexB);
+  if (densFboA) gl.deleteFramebuffer(densFboA);
+  if (densFboB) gl.deleteFramebuffer(densFboB);
+
   densW = canvas.width;
   densH = canvas.height;
 
@@ -737,7 +743,7 @@ function render() {
   gl.uniform2i(U.waveRender.uSimRes, simW, simH);
   gl.uniform1f(U.waveRender.uVisGain, params.visGain);
   gl.uniform1f(U.waveRender.uVisGamma, params.visGamma);
-  gl.uniform1i(U.waveRender.uShowPhase, params.showPhase);
+  gl.uniform1f(U.waveRender.uShowPhase, params.showPhase);
 
   gl.uniform1i(U.waveRender.uPaletteId, params.paletteId | 0);
 
@@ -800,11 +806,16 @@ function guidingModeLabel() {
 }
 
 function updateStats() {
-  statsEl.innerHTML = `<b>Physics</b>: ${guidingModeLabel()}`;
+  statsEl.innerHTML = `<b>Physics</b>: ${guidingModeLabel()}<br><b>Sim</b>: ${simW} x ${simH} (${fmt(params.simScale)}x)`;
 }
 
 function rebuildSimulation() {
   resizeCanvas();
+
+  if (texA) gl.deleteTexture(texA);
+  if (texB) gl.deleteTexture(texB);
+  if (fboA) gl.deleteFramebuffer(fboA);
+  if (fboB) gl.deleteFramebuffer(fboB);
 
   simW = Math.max(64, Math.floor(canvas.width * params.simScale));
   simH = Math.max(64, Math.floor(canvas.height * params.simScale));

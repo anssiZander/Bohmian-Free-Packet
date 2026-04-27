@@ -14,8 +14,13 @@
       border:1px solid rgba(255,255,255,0.12); border-radius:10px;
       backdrop-filter: blur(6px);
       user-select:none;
+      box-sizing:border-box;
+      max-height:calc(100vh - 24px);
+      display:flex;
+      flex-direction:column;
     }
     #ui h3 { margin:0 0 8px 0; font-size:14px; font-weight:600; color:#fff; }
+    #uibody { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:4px; scrollbar-width:thin; }
     .row { display:flex; align-items:center; gap:10px; margin:6px 0; }
     .row label { width:120px; font-size:12px; color:#bbb; }
     .row input[type="range"] { flex:1; }

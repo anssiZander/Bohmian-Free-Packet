@@ -7,7 +7,7 @@ uniform ivec2 uSimRes;
 
 uniform float uVisGain;
 uniform float uVisGamma;
-uniform int   uShowPhase;
+uniform float uShowPhase;
 
 uniform int   uPaletteId;
 
@@ -79,13 +79,13 @@ void main(){
   vec3 a,b,c,d;
   int useId = uPaletteId;
   
-  if(uPaletteId == 5 && uShowPhase == 0) {
+  if(uPaletteId == 5 && uShowPhase < 0.5) {
     useId = 2;
   }
   getPaletteParams(useId, a,b,c,d);
 
   vec3 col;
-  if(uShowPhase==1){
+  if(uShowPhase > 0.5){
     float ph = atan(psi.y, psi.x);
     float t = fract((ph + 3.14159265) / 6.2831853);
     col = palette(t, a,b,c,d) * I;
