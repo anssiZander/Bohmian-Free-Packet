@@ -8,12 +8,20 @@ uniform ivec2 uSimRes;
 uniform float uHBAR;
 uniform float uMass;
 uniform float uDT;
+uniform int uBoundaryMode;
 
 out vec4 fragColor;
 
 vec2 fetchPsi(ivec2 q){
-  if(q.x < 0 || q.y < 0 || q.x >= uSimRes.x || q.y >= uSimRes.y) return vec2(0.0);
-  return texelFetch(uState, q, 0).rg;
+  if (uBoundaryMode == 1) {
+    // Periodic boundary: wrap coordinates
+    q = ivec2(mod(vec2(q), vec2(uSimRes)));
+    return texelFetch(uState, q, 0).rg;
+  } else {
+    // Reflecting boundary: return 0 outside domain
+    if(q.x < 0 || q.y < 0 || q.x >= uSimRes.x || q.y >= uSimRes.y) return vec2(0.0);
+    return texelFetch(uState, q, 0).rg;
+  }
 }
 
 vec2 schrodingerRHS(vec2 psi, vec2 lapPsi){

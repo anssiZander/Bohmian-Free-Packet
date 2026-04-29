@@ -30,6 +30,7 @@ const params = {
   rhoMin: 1e-6,
   velClamp: 160.0,
   guidingMode: 1,
+  boundaryMode: 0,
   spinS: 0.5,
 
   visGain: 20.0,
@@ -37,7 +38,7 @@ const params = {
   showPhase: 1,
 
   showParticles: 1,
-  dotSize: 7.0,
+  dotSize: 9.0,
   dotSigma: 0.28,
   dotGain: 1.,
 
@@ -46,7 +47,7 @@ const params = {
   trailVisGain: 1.,
   trailVisGamma: 1,
   trailStampGain: 0.55,
-  trailWidth: 4.0,
+  trailWidth: 6.0,
   trailBlendMode: 1,
 
   paletteId: 5,
@@ -184,13 +185,13 @@ function addSectionHeader(label) {
 }
 
 addSlider("simScale", "sim scale", 0.25, 1.0, 0.05, () => rebuildSimulation());
-addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
+addSlider("stepsPerFrame", "Steps/frame", 1, 51, 5);
 addSlider("dt", "dt", 0.01, 0.04, 0.01);
 
 addSectionHeader("Physical Parameters");
 addSlider("p0", "momentum p", 0., 8.0, 0.1, () => resetAll());
 
-addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
+//addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
 addToggleInt("doubleGaussian", "split gaussian");
@@ -252,6 +253,49 @@ addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
   controls.appendChild(row);
 }
 
+{
+  const row = document.createElement("div");
+  row.className = "row mode-row";
+
+  const lab = document.createElement("label");
+  lab.textContent = "boundary conditions";
+
+  const group = document.createElement("div");
+  group.className = "toggle-group";
+
+  const btnReflecting = document.createElement("button");
+  btnReflecting.textContent = "Reflecting";
+  btnReflecting.addEventListener("click", () => {
+    params.boundaryMode = 0;
+    updateBoundaryButtons();
+  });
+
+  const btnPeriodic = document.createElement("button");
+  btnPeriodic.textContent = "Periodic";
+  btnPeriodic.addEventListener("click", () => {
+    params.boundaryMode = 1;
+    updateBoundaryButtons();
+  });
+
+  group.appendChild(btnReflecting);
+  group.appendChild(btnPeriodic);
+
+  function updateBoundaryButtons() {
+    btnReflecting.classList.toggle("selected", params.boundaryMode === 0);
+    btnPeriodic.classList.toggle("selected", params.boundaryMode === 1);
+  }
+  updateBoundaryButtons();
+
+  const val = document.createElement("div");
+  val.className = "val";
+  val.textContent = "";
+
+  row.appendChild(lab);
+  row.appendChild(group);
+  row.appendChild(val);
+  controls.appendChild(row);
+}
+
 addSectionHeader("Visual Parameters");
 addToggleInt("showPhase", "show phase");
 addToggleInt("showParticles", "show particles");
@@ -259,10 +303,10 @@ addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
 addSlider("dotGain", "particle brightness", 0.1, 3.0, 0.1);
 
 addToggleInt("showTrail", "draw trails");
-addSlider("trailHalfLife", "trail half-life", 1.0, 150.0, 1.0);
+addSlider("trailHalfLife", "trail half-life", 1.0, 100.0, 1.0);
 //addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
 //addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
-addSlider("trailWidth", "trail width (px)", 1, 5.0, 1);
+addSlider("trailWidth", "trail width (px)", 3, 10.0, 1);
 
 //addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
 //addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
@@ -427,6 +471,7 @@ function buildPrograms() {
     uHBAR: u(progWaveStep, "uHBAR"),
     uMass: u(progWaveStep, "uMass"),
     uDT: u(progWaveStep, "uDT"),
+    uBoundaryMode: u(progWaveStep, "uBoundaryMode"),
   };
 
   U.waveRender = {
@@ -448,6 +493,7 @@ function buildPrograms() {
     uSpinS: u(progPartUpdate, "uSpinS"),
     uRhoMin: u(progPartUpdate, "uRhoMin"),
     uVelClamp: u(progPartUpdate, "uVelClamp"),
+    uBoundaryMode: u(progPartUpdate, "uBoundaryMode"),
   };
 
   U.partView = {
@@ -521,6 +567,7 @@ function setWaveStepUniforms(srcTex) {
   gl.uniform1f(U.waveStep.uHBAR, params.hbar);
   gl.uniform1f(U.waveStep.uMass, params.mass);
   gl.uniform1f(U.waveStep.uDT, params.dt);
+  gl.uniform1i(U.waveStep.uBoundaryMode, params.boundaryMode | 0);
 }
 
 function resetWave() {
@@ -638,6 +685,7 @@ function particleUpdate() {
 
   gl.uniform1f(U.partUpdate.uRhoMin, params.rhoMin);
   gl.uniform1f(U.partUpdate.uVelClamp, params.velClamp);
+  gl.uniform1i(U.partUpdate.uBoundaryMode, params.boundaryMode | 0);
 
   gl.bindVertexArray(vaoParticles);
 
